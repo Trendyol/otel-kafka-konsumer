@@ -88,7 +88,7 @@ func main() {
 	defer tp.Shutdown(context.Background())
 
 	segmentioReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:     []string{"localhost:9092"},
+		Brokers:     []string{"localhost:29092"},
 		GroupTopics: []string{"opentel"},
 		GroupID:     "opentel-cg",
 	})
@@ -117,7 +117,7 @@ func main() {
 		fmt.Println(message)
 
 		// Extract tracing info from message
-		ctx := otel.GetTextMapPropagator().Extract(context.Background(), otelkafkago.NewMessageCarrier(message))
+		ctx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkago.NewMessageCarrier(message))
 
 		tr := otel.Tracer("consumer")
 		parentCtx, span := tr.Start(ctx, "work")

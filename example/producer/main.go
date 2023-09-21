@@ -42,7 +42,7 @@ func main() {
 	defer tp.Shutdown(context.Background())
 
 	segmentioProducer := &kafka.Writer{
-		Addr: kafka.TCP("localhost:9092"),
+		Addr: kafka.TCP("localhost:29092"),
 	}
 
 	writer, err := otelkafkago.NewWriter(segmentioProducer,
@@ -59,14 +59,15 @@ func main() {
 	}
 	defer writer.Close()
 
-	message := &kafka.Message{Topic: "produce", Value: []byte("1")}
-	writer.WriteMessages(context.Background(), message)
+	message := &kafka.Message{Topic: "opentel", Value: []byte("1")}
 
 	// Extract tracing info from message
-	ctx := otel.GetTextMapPropagator().Extract(context.Background(), otelkafkago.NewMessageCarrier(message))
+	ctx := writer.TraceConfig.Propagator.Extract(context.Background(), otelkafkago.NewMessageCarrier(message))
 
 	tr := otel.Tracer("after producing")
-	_, span := tr.Start(ctx, "work")
+	parentCtx, span := tr.Start(ctx, "work")
 	time.Sleep(100 * time.Millisecond)
 	span.End()
+
+	writer.WriteMessages(parentCtx, message)
 }

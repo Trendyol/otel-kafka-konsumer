@@ -14,9 +14,9 @@ import (
 )
 
 type Reader struct {
-	R          *kafka.Reader
-	cfg        *Config
-	activeSpan unsafe.Pointer
+	R           *kafka.Reader
+	TraceConfig *Config
+	activeSpan  unsafe.Pointer
 }
 
 type readerSpan struct {
@@ -32,22 +32,21 @@ func NewReader(r *kafka.Reader, opts ...Option) (*Reader, error) {
 		trace.WithAttributes(
 			semconv.MessagingDestinationKindTopic,
 			semconv.MessagingOperationReceive,
-			semconv.MessagingKafkaClientIDKey.String(r.Stats().ClientID),
 		),
 	)
 	return &Reader{
-		R:          r,
-		cfg:        cfg,
-		activeSpan: unsafe.Pointer(&readerSpan{}),
+		R:           r,
+		TraceConfig: cfg,
+		activeSpan:  unsafe.Pointer(&readerSpan{}),
 	}, nil
 }
 
 func (r *Reader) startSpan(msg *kafka.Message) readerSpan {
 	carrier := NewMessageCarrier(msg)
-	psc := r.cfg.Propagator.Extract(context.Background(), carrier)
+	psc := r.TraceConfig.Propagator.Extract(context.Background(), carrier)
 
 	name := fmt.Sprintf("received from %s", msg.Topic)
-	opts := r.cfg.MergedSpanStartOptions(
+	opts := r.TraceConfig.MergedSpanStartOptions(
 		trace.WithAttributes(
 			semconv.MessagingDestinationKey.String(msg.Topic),
 			semconv.MessagingMessageIDKey.String(strconv.FormatInt(msg.Offset, 10)),
@@ -56,11 +55,11 @@ func (r *Reader) startSpan(msg *kafka.Message) readerSpan {
 		),
 		trace.WithSpanKind(trace.SpanKindConsumer),
 	)
-	ctx, otelSpan := r.cfg.Tracer.Start(psc, name, opts...)
+	ctx, otelSpan := r.TraceConfig.Tracer.Start(psc, name, opts...)
 
 	// Inject the current span into the original message, so it can be used to
 	// propagate the span.
-	r.cfg.Propagator.Inject(ctx, carrier)
+	r.TraceConfig.Propagator.Inject(ctx, carrier)
 
 	return readerSpan{otelSpan: otelSpan}
 }

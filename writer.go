@@ -11,8 +11,8 @@ import (
 )
 
 type Writer struct {
-	W   *kafka.Writer
-	cfg *Config
+	W           *kafka.Writer
+	TraceConfig *Config
 }
 
 // NewWriter wraps the resulting Writer with OpenTelemetry instrumentation
@@ -28,8 +28,8 @@ func NewWriter(w *kafka.Writer, opts ...Option) (*Writer, error) {
 	)
 
 	return &Writer{
-		W:   w,
-		cfg: cfg,
+		W:           w,
+		TraceConfig: cfg,
 	}, nil
 }
 
@@ -38,9 +38,8 @@ func (w *Writer) Close() {
 }
 
 func (w *Writer) WriteMessages(ctx context.Context, msg *kafka.Message) error {
-	span := w.startSpan(msg)
+	span := w.startSpan(ctx, msg)
 	err := w.W.WriteMessages(ctx, *msg)
-
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
@@ -49,11 +48,11 @@ func (w *Writer) WriteMessages(ctx context.Context, msg *kafka.Message) error {
 	return err
 }
 
-func (w *Writer) startSpan(msg *kafka.Message) trace.Span {
+func (w *Writer) startSpan(ctx context.Context, msg *kafka.Message) trace.Span {
 	carrier := NewMessageCarrier(msg)
-	psc := w.cfg.Propagator.Extract(context.Background(), carrier)
+	psc := w.TraceConfig.Propagator.Extract(ctx, carrier)
 
-	opts := w.cfg.MergedSpanStartOptions(
+	opts := w.TraceConfig.MergedSpanStartOptions(
 		trace.WithAttributes(
 			semconv.MessagingDestinationKey.String(msg.Topic),
 			semconv.MessagingMessageIDKey.String(strconv.FormatInt(msg.Offset, 10)),
@@ -64,8 +63,8 @@ func (w *Writer) startSpan(msg *kafka.Message) trace.Span {
 	)
 
 	name := fmt.Sprintf("%s send", msg.Topic)
-	ctx, span := w.cfg.Tracer.Start(psc, name, opts...)
+	tracerCtx, span := w.TraceConfig.Tracer.Start(psc, name, opts...)
 
-	w.cfg.Propagator.Inject(ctx, carrier)
+	w.TraceConfig.Propagator.Inject(tracerCtx, carrier)
 	return span
 }
