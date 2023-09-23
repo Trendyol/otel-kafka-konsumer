@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/Abdulsametileri/otel-kafkago"
 	"github.com/segmentio/kafka-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"

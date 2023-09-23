@@ -1,4 +1,4 @@
-module github.com/Abdulsametileri/otel-kafkago
+module github.com/Abdulsametileri/otel-kafka-konsumer
 
 go 1.19
 
