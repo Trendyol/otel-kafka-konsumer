@@ -33,8 +33,8 @@ func NewWriter(w *kafka.Writer, opts ...Option) (*Writer, error) {
 	}, nil
 }
 
-func (w *Writer) Close() {
-	w.W.Close()
+func (w *Writer) Close() error {
+	return w.W.Close()
 }
 
 func (w *Writer) WriteMessages(ctx context.Context, msg *kafka.Message) error {
