@@ -1,4 +1,4 @@
-package otelkafkago
+package otelkafkakonsumer
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 const version = "0.0.1"
 
 // instrumentationName is the instrumentation library identifier for a Tracer.
-const instrumentationName = "github.com/Trendyol/kafka-konsumer"
+const instrumentationName = "github.com/Trendyol/otel-kafka-konsumer"
 
 func localToInternal(opts []Option) []Option {
 	out := make([]Option, len(opts))

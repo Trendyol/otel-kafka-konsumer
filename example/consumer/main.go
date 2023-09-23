@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	otelkafkakonsumer "github.com/Abdulsametileri/otel-kafka-konsumer"
 	"github.com/segmentio/kafka-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -92,11 +93,11 @@ func main() {
 		GroupID:     "opentel-cg",
 	})
 
-	reader, err := otelkafkago.NewReader(
+	reader, err := otelkafkakonsumer.NewReader(
 		segmentioReader,
-		otelkafkago.WithTracerProvider(tp),
-		otelkafkago.WithPropagator(propagation.TraceContext{}),
-		otelkafkago.WithAttributes(
+		otelkafkakonsumer.WithTracerProvider(tp),
+		otelkafkakonsumer.WithPropagator(propagation.TraceContext{}),
+		otelkafkakonsumer.WithAttributes(
 			[]attribute.KeyValue{
 				semconv.MessagingDestinationKindTopic,
 				semconv.MessagingKafkaClientIDKey.String("opentel-cg"),
@@ -116,7 +117,7 @@ func main() {
 		fmt.Println(message)
 
 		// Extract tracing info from message
-		ctx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkago.NewMessageCarrier(message))
+		ctx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(message))
 
 		tr := otel.Tracer("consumer")
 		parentCtx, span := tr.Start(ctx, "work")

@@ -1,4 +1,4 @@
-package otelkafkago
+package otelkafkakonsumer
 
 import (
 	"go.opentelemetry.io/otel/attribute"
