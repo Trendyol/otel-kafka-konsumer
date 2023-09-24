@@ -16,14 +16,6 @@ const version = "0.0.1"
 // instrumentationName is the instrumentation library identifier for a Tracer.
 const instrumentationName = "github.com/Trendyol/otel-kafka-konsumer"
 
-func localToInternal(opts []Option) []Option {
-	out := make([]Option, len(opts))
-	for i, o := range opts {
-		out[i] = Option(o)
-	}
-	return out
-}
-
 // Config contains configuration options.
 type Config struct {
 	defaultTracerName string
@@ -35,6 +27,10 @@ type Config struct {
 	DefaultStartOpts []trace.SpanStartOption
 }
 
+// NewConfig returns a Config for instrumentation with all options applied.
+//
+// If no TracerProvider or Propagator are specified with options, the default
+// OpenTelemetry globals will be used.
 func NewConfig(instrumentationName string, options ...Option) *Config {
 	c := Config{defaultTracerName: instrumentationName}
 
@@ -44,11 +40,17 @@ func NewConfig(instrumentationName string, options ...Option) *Config {
 		}
 	}
 
-	c.Tracer = otel.Tracer(
-		c.defaultTracerName,
-		trace.WithInstrumentationVersion(version),
-		trace.WithSchemaURL(semconv.SchemaURL),
-	)
+	if c.Tracer == nil {
+		c.Tracer = otel.Tracer(
+			c.defaultTracerName,
+			trace.WithInstrumentationVersion(version),
+			trace.WithSchemaURL(semconv.SchemaURL),
+		)
+	}
+
+	if c.Propagator == nil {
+		c.Propagator = otel.GetTextMapPropagator()
+	}
 
 	return &c
 }

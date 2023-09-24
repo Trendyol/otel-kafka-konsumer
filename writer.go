@@ -37,9 +37,9 @@ func (w *Writer) Close() error {
 	return w.W.Close()
 }
 
-func (w *Writer) WriteMessages(ctx context.Context, msg *kafka.Message) error {
-	span := w.startSpan(ctx, msg)
-	err := w.W.WriteMessages(ctx, *msg)
+func (w *Writer) WriteMessages(ctx context.Context, msg kafka.Message) error {
+	span := w.startSpan(ctx, &msg)
+	err := w.W.WriteMessages(ctx, msg)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())

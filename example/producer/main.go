@@ -59,10 +59,10 @@ func main() {
 	}
 	defer writer.Close()
 
-	message := &kafka.Message{Topic: "opentel", Value: []byte("1")}
+	message := kafka.Message{Topic: "opentel", Value: []byte("1")}
 
 	// Extract tracing info from message
-	ctx := writer.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(message))
+	ctx := writer.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(&message))
 
 	tr := otel.Tracer("after producing")
 	parentCtx, span := tr.Start(ctx, "work")

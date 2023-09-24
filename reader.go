@@ -23,6 +23,8 @@ type readerSpan struct {
 	otelSpan trace.Span
 }
 
+// NewReader calls kafka.NewReader and wraps the resulting Consumer with
+// tracing instrumentation.
 func NewReader(r *kafka.Reader, opts ...Option) (*Reader, error) {
 	cfg := NewConfig(instrumentationName, opts...)
 
@@ -34,6 +36,7 @@ func NewReader(r *kafka.Reader, opts ...Option) (*Reader, error) {
 			semconv.MessagingOperationReceive,
 		),
 	)
+
 	return &Reader{
 		R:           r,
 		TraceConfig: cfg,
