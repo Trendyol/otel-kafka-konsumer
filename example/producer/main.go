@@ -64,7 +64,7 @@ func main() {
 	// Extract tracing info from message
 	ctx := writer.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(&message))
 
-	tr := otel.Tracer("after producing")
+	tr := otel.Tracer("before producing")
 	parentCtx, span := tr.Start(ctx, "work")
 	time.Sleep(100 * time.Millisecond)
 	span.End()

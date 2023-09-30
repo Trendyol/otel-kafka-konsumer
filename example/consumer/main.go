@@ -8,48 +8,15 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
-	"io"
 	"log"
 	"time"
 )
 
-func newstdoutTraceProvider(w io.Writer) *trace.TracerProvider {
-	r, err := resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName("fib"),
-			semconv.ServiceVersion("v0.1.0"),
-			attribute.String("environment", "demo"),
-		),
-	)
-	if err != nil {
-		log.Fatalf("err creating resource %v", err)
-	}
-
-	exporter, err := stdouttrace.New(
-		stdouttrace.WithWriter(w),
-		stdouttrace.WithPrettyPrint(),
-		stdouttrace.WithoutTimestamps(),
-	)
-	if err != nil {
-		log.Fatalf("err initializing exporter %v", err)
-	}
-
-	return trace.NewTracerProvider(
-		trace.WithSampler(trace.AlwaysSample()),
-		trace.WithBatcher(exporter),
-		trace.WithResource(r),
-	)
-}
-
 func initJaegerTracer(url string) *trace.TracerProvider {
-	// Create the Jaeger exporter
 	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(url)))
 	if err != nil {
 		log.Fatalf("Err initializing jaeger instance %v", err)
@@ -70,20 +37,7 @@ func initJaegerTracer(url string) *trace.TracerProvider {
 	return tp
 }
 
-// docker run -d --name jaeger -e COLLECTOR_OTLP_ENABLED=true -p 14268:14268 -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one:latest
 func main() {
-	/*
-		l := log.New(os.Stdout, "", 0)
-
-		f, err := os.Create("traces.txt")
-		if err != nil {
-			l.Fatal(err)
-		}
-		defer f.Close()
-
-		tp := newstdoutTraceProvider(f)
-	*/
-
 	tp := initJaegerTracer("http://localhost:14268/api/traces")
 	defer tp.Shutdown(context.Background())
 
