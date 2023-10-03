@@ -2,7 +2,7 @@
 
 This library enables distributed tracing on the segmentio/kafka-go library and is used on kafka-konsumer.
 
-Please refer to examples to learn how to use it.
+Please refer to examples to learn how to use it. You can also look at [the open-telemetry go documentation](https://opentelemetry.io/docs/instrumentation/go/getting-started/)
 
 You can follow the release status by subscribing [this issue](https://github.com/Trendyol/kafka-konsumer/issues/18)
 
