@@ -1,4 +1,4 @@
-module github.com/Abdulsametileri/otel-kafka-konsumer
+module github.com/Trendyol/otel-kafka-konsumer
 
 go 1.19
 
@@ -7,7 +7,6 @@ require (
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel v1.19.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.16.0
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.16.0
 	go.opentelemetry.io/otel/sdk v1.19.0
 	go.opentelemetry.io/otel/trace v1.19.0
 )

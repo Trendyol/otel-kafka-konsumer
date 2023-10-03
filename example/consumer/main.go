@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	otelkafkakonsumer "github.com/Abdulsametileri/otel-kafka-konsumer"
+	otelkafkakonsumer "github.com/Trendyol/otel-kafka-konsumer"
 	"github.com/segmentio/kafka-go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
