@@ -37,7 +37,7 @@ func (w *Writer) Close() error {
 	return w.W.Close()
 }
 
-func (w *Writer) WriteMessages(ctx context.Context, msg kafka.Message) error {
+func (w *Writer) WriteMessage(ctx context.Context, msg kafka.Message) error {
 	span := w.startSpan(ctx, &msg)
 	err := w.W.WriteMessages(ctx, msg)
 	if err != nil {
@@ -46,6 +46,12 @@ func (w *Writer) WriteMessages(ctx context.Context, msg kafka.Message) error {
 	}
 	span.End()
 	return err
+}
+
+// WriteMessages does not support tracing
+// For details: https://github.com/Trendyol/otel-kafka-konsumer/issues/4
+func (w *Writer) WriteMessages(ctx context.Context, msgs []kafka.Message) error {
+	return w.W.WriteMessages(ctx, msgs...)
 }
 
 func (w *Writer) startSpan(ctx context.Context, msg *kafka.Message) trace.Span {

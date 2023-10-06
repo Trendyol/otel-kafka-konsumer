@@ -11,7 +11,7 @@ import (
 )
 
 // version to attach in the tracer
-const version = "0.0.1"
+const version = "0.0.5"
 
 // instrumentationName is the instrumentation library identifier for a Tracer.
 const instrumentationName = "github.com/Trendyol/otel-kafka-konsumer"

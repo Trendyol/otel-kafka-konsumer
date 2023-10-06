@@ -69,5 +69,5 @@ func main() {
 	time.Sleep(100 * time.Millisecond)
 	span.End()
 
-	writer.WriteMessages(parentCtx, message)
+	writer.WriteMessage(parentCtx, message)
 }
