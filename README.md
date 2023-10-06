@@ -1,8 +1,8 @@
 # Otel Kafka Konsumer
 
-This library enables distributed tracing on the segmentio/kafka-go library and is used on kafka-konsumer.
+This library enables distributed tracing on the [segmentio/kafka-go](https://github.com/segmentio/kafka-go) library and is used on [kafka-konsumer](https://github.com/Trendyol/kafka-konsumer).
 
-Please refer to examples to learn how to use it. You can also look at [the open-telemetry go documentation](https://opentelemetry.io/docs/instrumentation/go/getting-started/)
+Please refer to [example](example) to learn how to use it. You can also look at [the open-telemetry go documentation](https://opentelemetry.io/docs/instrumentation/go/getting-started/)
 
 # Demo
 
