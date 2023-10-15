@@ -34,9 +34,9 @@ func getTracer() *trace.TracerProvider {
 func Test_Producer_And_Consumer_Spans_Have_Same_Trace_Id(t *testing.T) {
 	tracer := getTracer()
 	segmentioProducer := &kafka.Writer{
-		Addr: kafka.TCP("localhost:29092"),
+		Addr:                   kafka.TCP("localhost:9092"),
+		AllowAutoTopicCreation: true,
 	}
-
 	writer, err := otelkafkakonsumer.NewWriter(segmentioProducer,
 		otelkafkakonsumer.WithTracerProvider(tracer),
 		otelkafkakonsumer.WithPropagator(propagation.TraceContext{}),
@@ -64,7 +64,7 @@ func Test_Producer_And_Consumer_Spans_Have_Same_Trace_Id(t *testing.T) {
 	writer.WriteMessage(parentCtx, message)
 
 	segmentioReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:     []string{"localhost:29092"},
+		Brokers:     []string{"localhost:9092"},
 		GroupTopics: []string{"opentel-consumer-test"},
 		GroupID:     "opentel-cg",
 	})
