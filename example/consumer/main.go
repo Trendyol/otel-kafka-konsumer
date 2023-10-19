@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
+
 	otelkafkakonsumer "github.com/Trendyol/otel-kafka-konsumer"
 	"github.com/segmentio/kafka-go"
 	"go.opentelemetry.io/otel"
@@ -12,8 +15,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
-	"log"
-	"time"
 )
 
 func initJaegerTracer(url string) *trace.TracerProvider {
@@ -39,7 +40,12 @@ func initJaegerTracer(url string) *trace.TracerProvider {
 
 func main() {
 	tp := initJaegerTracer("http://localhost:14268/api/traces")
-	defer tp.Shutdown(context.Background())
+	defer func(tp *trace.TracerProvider, ctx context.Context) {
+		err := tp.Shutdown(ctx)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+	}(tp, context.Background())
 
 	segmentioReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:     []string{"localhost:29092"},

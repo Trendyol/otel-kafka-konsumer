@@ -3,11 +3,12 @@ package otelkafkakonsumer
 import (
 	"context"
 	"fmt"
+	"strconv"
+
 	"github.com/segmentio/kafka-go"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.16.0"
 	"go.opentelemetry.io/otel/trace"
-	"strconv"
 )
 
 type Writer struct {
