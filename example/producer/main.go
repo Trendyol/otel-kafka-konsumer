@@ -61,7 +61,7 @@ func main() {
 			},
 		))
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err.Error()) //nolint:gocritic
 	}
 	defer writer.Close()
 
