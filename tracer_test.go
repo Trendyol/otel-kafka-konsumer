@@ -9,7 +9,7 @@ import (
 
 func TestFnTracerProvider_Tracer(t *testing.T) {
 	// Given
-	var name string = "test_tracer"
+	name := "test_tracer"
 	var opts []trace.TracerOption = []trace.TracerOption{trace.WithInstrumentationVersion("v1.0.0")}
 	var expectedTracer trace.Tracer = &fnTracer{}
 	fn := &fnTracerProvider{

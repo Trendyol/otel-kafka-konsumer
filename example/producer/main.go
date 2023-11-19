@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"log"
+	"time"
+
 	otelkafkakonsumer "github.com/Trendyol/otel-kafka-konsumer"
 	"github.com/segmentio/kafka-go"
 	"go.opentelemetry.io/otel"
@@ -11,8 +14,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
-	"log"
-	"time"
 )
 
 func initJaegerTracer(url string) *trace.TracerProvider {
@@ -39,7 +40,12 @@ func initJaegerTracer(url string) *trace.TracerProvider {
 
 func main() {
 	tp := initJaegerTracer("http://localhost:14268/api/traces")
-	defer tp.Shutdown(context.Background())
+	defer func(tp *trace.TracerProvider, ctx context.Context) {
+		err := tp.Shutdown(ctx)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+	}(tp, context.Background())
 
 	segmentioProducer := &kafka.Writer{
 		Addr: kafka.TCP("localhost:29092"),
@@ -55,7 +61,7 @@ func main() {
 			},
 		))
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err.Error()) //nolint:gocritic
 	}
 	defer writer.Close()
 
@@ -69,5 +75,8 @@ func main() {
 	time.Sleep(100 * time.Millisecond)
 	span.End()
 
-	writer.WriteMessage(parentCtx, message)
+	err = writer.WriteMessage(parentCtx, message)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 }
