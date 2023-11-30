@@ -79,6 +79,18 @@ func (r *Reader) ReadMessage(ctx context.Context) (*kafka.Message, error) {
 	return &msg, err
 }
 
+func (r *Reader) FetchMessage(ctx context.Context) (*kafka.Message, error) {
+	endTime := time.Now()
+	msg, err := r.R.FetchMessage(ctx)
+	if err == nil {
+		s := r.startSpan(&msg)
+		active := atomic.SwapPointer(&r.activeSpan, unsafe.Pointer(&s))
+		(*readerSpan)(active).End(trace.WithTimestamp(endTime))
+		s.End()
+	}
+	return &msg, err
+}
+
 func (s readerSpan) End(options ...trace.SpanEndOption) {
 	if s.otelSpan != nil {
 		s.otelSpan.End(options...)
@@ -89,6 +101,12 @@ func (s readerSpan) End(options ...trace.SpanEndOption) {
 // any remaining span.
 func (r *Reader) Close() error {
 	err := r.R.Close()
+	(*readerSpan)(atomic.LoadPointer(&r.activeSpan)).End()
+	return err
+}
+
+func (r *Reader) CommitMessages(ctx context.Context, msgs ...kafka.Message) error {
+	err := r.R.CommitMessages(ctx, msgs...)
 	(*readerSpan)(atomic.LoadPointer(&r.activeSpan)).End()
 	return err
 }
