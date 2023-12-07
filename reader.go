@@ -118,5 +118,6 @@ func (s spanWrapper) End(options ...trace.SpanEndOption) {
 func (r *Reader) Close() error {
 	err := r.R.Close()
 	(*spanWrapper)(atomic.LoadPointer(&r.activeFetchSpan)).End()
+	(*spanWrapper)(atomic.LoadPointer(&r.activeCommitSpan)).End()
 	return err
 }
