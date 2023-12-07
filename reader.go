@@ -14,12 +14,13 @@ import (
 )
 
 type Reader struct {
-	R           *kafka.Reader
-	TraceConfig *Config
-	activeSpan  unsafe.Pointer
+	R                *kafka.Reader
+	TraceConfig      *Config
+	activeFetchSpan  unsafe.Pointer
+	activeCommitSpan unsafe.Pointer
 }
 
-type readerSpan struct {
+type spanWrapper struct {
 	otelSpan trace.Span
 }
 
@@ -38,17 +39,17 @@ func NewReader(r *kafka.Reader, opts ...Option) (*Reader, error) {
 	)
 
 	return &Reader{
-		R:           r,
-		TraceConfig: cfg,
-		activeSpan:  unsafe.Pointer(&readerSpan{}),
+		R:                r,
+		TraceConfig:      cfg,
+		activeFetchSpan:  unsafe.Pointer(&spanWrapper{}),
+		activeCommitSpan: unsafe.Pointer(&spanWrapper{}),
 	}, nil
 }
 
-func (r *Reader) startSpan(msg *kafka.Message) readerSpan {
+func (r *Reader) startSpan(spanName string, msg *kafka.Message) spanWrapper {
 	carrier := NewMessageCarrier(msg)
 	psc := r.TraceConfig.Propagator.Extract(context.Background(), carrier)
 
-	name := fmt.Sprintf("received from %s", msg.Topic)
 	opts := r.TraceConfig.MergedSpanStartOptions(
 		trace.WithAttributes(
 			semconv.MessagingDestinationKey.String(msg.Topic),
@@ -58,28 +59,55 @@ func (r *Reader) startSpan(msg *kafka.Message) readerSpan {
 		),
 		trace.WithSpanKind(trace.SpanKindConsumer),
 	)
-	ctx, otelSpan := r.TraceConfig.Tracer.Start(psc, name, opts...)
+	ctx, otelSpan := r.TraceConfig.Tracer.Start(psc, spanName, opts...)
 
 	// Inject the current span into the original message, so it can be used to
 	// propagate the span.
 	r.TraceConfig.Propagator.Inject(ctx, carrier)
 
-	return readerSpan{otelSpan: otelSpan}
+	return spanWrapper{otelSpan: otelSpan}
+}
+
+func (r *Reader) FetchMessage(ctx context.Context) (*kafka.Message, error) {
+	startTime := time.Now()
+	msg, err := r.R.FetchMessage(ctx)
+	if err == nil {
+		s := r.startSpan(fmt.Sprintf("fetched from %s", msg.Topic), &msg)
+		active := atomic.SwapPointer(&r.activeFetchSpan, unsafe.Pointer(&s))
+		(*spanWrapper)(active).End(trace.WithTimestamp(startTime))
+		s.End()
+	}
+	return &msg, err
+}
+
+func (r *Reader) CommitMessages(ctx context.Context, msgs ...kafka.Message) error {
+	// open span
+	startTime := time.Now()
+	s := r.startSpan(fmt.Sprintf("committed to %s", msgs[0].Topic), &msgs[0])
+	active := atomic.SwapPointer(&r.activeCommitSpan, unsafe.Pointer(&s))
+
+	err := r.R.CommitMessages(ctx, msgs...)
+
+	// end span
+	(*spanWrapper)(active).End(trace.WithTimestamp(startTime))
+	s.End()
+
+	return err
 }
 
 func (r *Reader) ReadMessage(ctx context.Context) (*kafka.Message, error) {
 	endTime := time.Now()
 	msg, err := r.R.ReadMessage(ctx)
 	if err == nil {
-		s := r.startSpan(&msg)
-		active := atomic.SwapPointer(&r.activeSpan, unsafe.Pointer(&s))
-		(*readerSpan)(active).End(trace.WithTimestamp(endTime))
+		s := r.startSpan(fmt.Sprintf("received from %s", msg.Topic), &msg)
+		active := atomic.SwapPointer(&r.activeFetchSpan, unsafe.Pointer(&s))
+		(*spanWrapper)(active).End(trace.WithTimestamp(endTime))
 		s.End()
 	}
 	return &msg, err
 }
 
-func (s readerSpan) End(options ...trace.SpanEndOption) {
+func (s spanWrapper) End(options ...trace.SpanEndOption) {
 	if s.otelSpan != nil {
 		s.otelSpan.End(options...)
 	}
@@ -89,6 +117,7 @@ func (s readerSpan) End(options ...trace.SpanEndOption) {
 // any remaining span.
 func (r *Reader) Close() error {
 	err := r.R.Close()
-	(*readerSpan)(atomic.LoadPointer(&r.activeSpan)).End()
+	(*spanWrapper)(atomic.LoadPointer(&r.activeFetchSpan)).End()
+	(*spanWrapper)(atomic.LoadPointer(&r.activeCommitSpan)).End()
 	return err
 }

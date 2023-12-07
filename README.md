@@ -19,6 +19,10 @@ docker-compose up --build
 
 ![Consuming Example](.github/images/consumer-example.png)
 
+## Consuming With Manual Commit
+
+![Consuming Example](.github/images/consumer-with-manual-commit.png)
+
 ## Bring it all together
 
 You can run producer and consumer, respectively, to see that they work together.

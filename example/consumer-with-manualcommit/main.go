@@ -50,7 +50,7 @@ func main() {
 	segmentioReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:     []string{"localhost:29092"},
 		GroupTopics: []string{"opentel"},
-		GroupID:     "opentel-cg",
+		GroupID:     "opentel-manualcommit-cg",
 	})
 
 	reader, err := otelkafkakonsumer.NewReader(
@@ -60,16 +60,16 @@ func main() {
 		otelkafkakonsumer.WithAttributes(
 			[]attribute.KeyValue{
 				semconv.MessagingDestinationKindTopic,
-				semconv.MessagingKafkaClientIDKey.String("opentel-cg"),
+				semconv.MessagingKafkaClientIDKey.String("opentel-manualcommit-cg"),
 			},
 		),
 	)
 	if err != nil {
-		log.Fatal(err.Error()) //nolint:gocritic
+		log.Fatal(err.Error())
 	}
 
 	for {
-		message, err := reader.ReadMessage(context.Background())
+		message, err := reader.FetchMessage(context.Background())
 		if err != nil {
 			fmt.Println(err.Error())
 			continue
@@ -87,5 +87,7 @@ func main() {
 		_, span = tr.Start(parentCtx, "another work")
 		time.Sleep(50 * time.Millisecond)
 		span.End()
+
+		reader.CommitMessages(context.Background(), *message)
 	}
 }

@@ -2,6 +2,8 @@ module integration
 
 go 1.19
 
+replace github.com/Trendyol/otel-kafka-konsumer => ../..
+
 require (
 	github.com/Trendyol/otel-kafka-konsumer v0.0.5
 	github.com/segmentio/kafka-go v0.4.44

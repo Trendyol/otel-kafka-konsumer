@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 )
 
 func initJaegerTracer(url string) *trace.TracerProvider {
-	// Create the Jaeger exporter
 	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(url)))
 	if err != nil {
 		log.Fatalf("Err initializing jaeger instance %v", err)
@@ -47,11 +47,14 @@ func main() {
 		}
 	}(tp, context.Background())
 
-	segmentioProducer := &kafka.Writer{
-		Addr: kafka.TCP("localhost:29092"),
-	}
+	segmentioReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:     []string{"localhost:29092"},
+		GroupTopics: []string{"opentel"},
+		GroupID:     "opentel-cg",
+	})
 
-	writer, err := otelkafkakonsumer.NewWriter(segmentioProducer,
+	reader, err := otelkafkakonsumer.NewReader(
+		segmentioReader,
 		otelkafkakonsumer.WithTracerProvider(tp),
 		otelkafkakonsumer.WithPropagator(propagation.TraceContext{}),
 		otelkafkakonsumer.WithAttributes(
@@ -59,24 +62,30 @@ func main() {
 				semconv.MessagingDestinationKindTopic,
 				semconv.MessagingKafkaClientIDKey.String("opentel-cg"),
 			},
-		))
+		),
+	)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer writer.Close()
 
-	message := kafka.Message{Topic: "opentel", Value: []byte("1")}
+	for {
+		message, err := reader.ReadMessage(context.Background())
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
+		}
+		fmt.Println(message)
 
-	// Extract tracing info from message
-	ctx := writer.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(&message))
+		// Extract tracing info from message
+		ctx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(message))
 
-	tr := otel.Tracer("before producing")
-	parentCtx, span := tr.Start(ctx, "work")
-	time.Sleep(100 * time.Millisecond)
-	span.End()
+		tr := otel.Tracer("consumer")
+		parentCtx, span := tr.Start(ctx, "work")
+		time.Sleep(100 * time.Millisecond)
+		span.End()
 
-	err = writer.WriteMessage(parentCtx, message)
-	if err != nil {
-		log.Fatal(err.Error())
+		_, span = tr.Start(parentCtx, "another work")
+		time.Sleep(50 * time.Millisecond)
+		span.End()
 	}
 }

@@ -40,6 +40,11 @@ issues:
     - linters:
         - stylecheck
       text: "ST1001:"
+    - path: example
+      linters:
+        - errcheck
+        - funlen
+        - gocritic
     - path: _test\.go
       linters:
         - errcheck
