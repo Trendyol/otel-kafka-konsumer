@@ -65,7 +65,7 @@ func main() {
 		),
 	)
 	if err != nil {
-		log.Fatal(err.Error()) //nolint:gocritic
+		log.Fatal(err.Error())
 	}
 
 	for {
