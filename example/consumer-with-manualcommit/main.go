@@ -17,6 +17,49 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
+func main() {
+	tp := initJaegerTracer("http://localhost:14268/api/traces")
+	defer tp.Shutdown(context.Background())
+
+	reader, _ := otelkafkakonsumer.NewReader(
+		kafka.NewReader(kafka.ReaderConfig{
+			Brokers:     []string{"localhost:29092"},
+			GroupTopics: []string{"opentel"},
+			GroupID:     "opentel-manualcommit-cg",
+		}),
+		otelkafkakonsumer.WithTracerProvider(tp),
+		otelkafkakonsumer.WithPropagator(propagation.TraceContext{}),
+		otelkafkakonsumer.WithAttributes(
+			[]attribute.KeyValue{
+				semconv.MessagingDestinationKindTopic,
+				semconv.MessagingKafkaClientIDKey.String("opentel-manualcommit-cg"),
+			},
+		),
+	)
+
+	for {
+		// Consume message
+		m := &kafka.Message{}
+		reader.FetchMessage(context.Background(), m)
+		fmt.Println("incoming message", *m)
+
+		// Extract tracing info from message
+		ctx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(m))
+
+		tr := otel.Tracer("consumer")
+		parentCtx, span := tr.Start(ctx, "work")
+		time.Sleep(100 * time.Millisecond) // simulate some work
+		span.End()
+
+		_, span = tr.Start(parentCtx, "another work")
+		time.Sleep(50 * time.Millisecond) // simulate some work
+		span.End()
+
+		// Commit message
+		reader.CommitMessages(context.Background(), *m)
+	}
+}
+
 func initJaegerTracer(url string) *trace.TracerProvider {
 	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(url)))
 	if err != nil {
@@ -36,59 +79,4 @@ func initJaegerTracer(url string) *trace.TracerProvider {
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	return tp
-}
-
-func main() {
-	tp := initJaegerTracer("http://localhost:14268/api/traces")
-	defer func(tp *trace.TracerProvider, ctx context.Context) {
-		err := tp.Shutdown(ctx)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-	}(tp, context.Background())
-
-	segmentioReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:     []string{"localhost:29092"},
-		GroupTopics: []string{"opentel"},
-		GroupID:     "opentel-manualcommit-cg",
-	})
-
-	reader, err := otelkafkakonsumer.NewReader(
-		segmentioReader,
-		otelkafkakonsumer.WithTracerProvider(tp),
-		otelkafkakonsumer.WithPropagator(propagation.TraceContext{}),
-		otelkafkakonsumer.WithAttributes(
-			[]attribute.KeyValue{
-				semconv.MessagingDestinationKindTopic,
-				semconv.MessagingKafkaClientIDKey.String("opentel-manualcommit-cg"),
-			},
-		),
-	)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	for {
-		m := &kafka.Message{}
-		err := reader.FetchMessage(context.Background(), m)
-		if err != nil {
-			fmt.Println(err.Error())
-			continue
-		}
-		fmt.Println(*m)
-
-		// Extract tracing info from message
-		ctx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(m))
-
-		tr := otel.Tracer("consumer")
-		parentCtx, span := tr.Start(ctx, "work")
-		time.Sleep(100 * time.Millisecond)
-		span.End()
-
-		_, span = tr.Start(parentCtx, "another work")
-		time.Sleep(50 * time.Millisecond)
-		span.End()
-
-		reader.CommitMessages(context.Background(), *m)
-	}
 }
