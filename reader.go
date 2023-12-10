@@ -68,16 +68,20 @@ func (r *Reader) startSpan(spanName string, msg *kafka.Message) spanWrapper {
 	return spanWrapper{otelSpan: otelSpan}
 }
 
-func (r *Reader) FetchMessage(ctx context.Context) (*kafka.Message, error) {
+func (r *Reader) FetchMessage(ctx context.Context, message *kafka.Message) error {
 	startTime := time.Now()
-	msg, err := r.R.FetchMessage(ctx)
-	if err == nil {
-		s := r.startSpan(fmt.Sprintf("fetched from %s", msg.Topic), &msg)
-		active := atomic.SwapPointer(&r.activeFetchSpan, unsafe.Pointer(&s))
-		(*spanWrapper)(active).End(trace.WithTimestamp(startTime))
-		s.End()
+	m, err := r.R.FetchMessage(ctx)
+	if err != nil {
+		return err
 	}
-	return &msg, err
+	*message = m
+
+	s := r.startSpan(fmt.Sprintf("fetched from %s", message.Topic), message)
+	active := atomic.SwapPointer(&r.activeFetchSpan, unsafe.Pointer(&s))
+	(*spanWrapper)(active).End(trace.WithTimestamp(startTime))
+	s.End()
+
+	return nil
 }
 
 func (r *Reader) CommitMessages(ctx context.Context, msgs ...kafka.Message) error {

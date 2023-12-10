@@ -158,10 +158,13 @@ func Test_Producer_And_Consumer_Spans_Have_Same_Trace_Id_In_ManualCommit_Mode(t 
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	consumerMessage, err := reader.FetchMessage(context.Background())
-
+	m := &kafka.Message{}
+	err = reader.FetchMessage(context.Background(), m)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	// Extract tracing info from message
-	consumerCtx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(consumerMessage))
+	consumerCtx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(m))
 	consumerCtx, workSpan := tr.Start(consumerCtx, "work")
 
 	time.Sleep(100 * time.Millisecond)
@@ -171,10 +174,10 @@ func Test_Producer_And_Consumer_Spans_Have_Same_Trace_Id_In_ManualCommit_Mode(t 
 	time.Sleep(50 * time.Millisecond)
 	anotherWorkSpan.End()
 
-	reader.CommitMessages(context.Background(), *consumerMessage)
+	reader.CommitMessages(context.Background(), *m)
 
 	//assert
-	traceParent := strings.Split(string(consumerMessage.Headers[0].Value), "-")
+	traceParent := strings.Split(string(m.Headers[0].Value), "-")
 	assert.Equal(t, producerSpan.SpanContext().HasTraceID(), true)
 	assert.Equal(t, producerSpan.SpanContext().IsValid(), true)
 	assert.Equal(t, producerSpan.SpanContext().HasSpanID(), true)
