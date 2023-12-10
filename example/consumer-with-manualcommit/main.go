@@ -69,15 +69,16 @@ func main() {
 	}
 
 	for {
-		message, err := reader.FetchMessage(context.Background())
+		m := &kafka.Message{}
+		err := reader.FetchMessage(context.Background(), m)
 		if err != nil {
 			fmt.Println(err.Error())
 			continue
 		}
-		fmt.Println(message)
+		fmt.Println(*m)
 
 		// Extract tracing info from message
-		ctx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(message))
+		ctx := reader.TraceConfig.Propagator.Extract(context.Background(), otelkafkakonsumer.NewMessageCarrier(m))
 
 		tr := otel.Tracer("consumer")
 		parentCtx, span := tr.Start(ctx, "work")
@@ -88,6 +89,6 @@ func main() {
 		time.Sleep(50 * time.Millisecond)
 		span.End()
 
-		reader.CommitMessages(context.Background(), *message)
+		reader.CommitMessages(context.Background(), *m)
 	}
 }
