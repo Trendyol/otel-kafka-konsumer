@@ -49,8 +49,6 @@ func (w *Writer) WriteMessage(ctx context.Context, msg kafka.Message) error {
 	return err
 }
 
-// WriteMessages does not support tracing
-// For details: https://github.com/Trendyol/otel-kafka-konsumer/issues/4
 func (w *Writer) WriteMessages(ctx context.Context, msgs []kafka.Message) error {
 	return w.W.WriteMessages(ctx, msgs...)
 }
