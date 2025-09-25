@@ -1,3 +1,5 @@
+
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Trendyol/otel-kafka-konsumer/badge)](https://scorecard.dev/viewer/?uri=github.com/Trendyol/otel-kafka-konsumer)
 # Otel Kafka Konsumer
 
 This library enables distributed tracing on the [segmentio/kafka-go](https://github.com/segmentio/kafka-go) library and is used on [kafka-konsumer](https://github.com/Trendyol/kafka-konsumer). 
