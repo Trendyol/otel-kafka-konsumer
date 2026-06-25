@@ -1,9 +1,9 @@
 module github.com/Trendyol/otel-kafka-konsumer
 
-go 1.19
+go 1.23
 
 require (
-	github.com/segmentio/kafka-go v0.4.43
+	github.com/segmentio/kafka-go v0.4.51
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel v1.19.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.16.0
