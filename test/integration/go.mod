@@ -1,12 +1,12 @@
 module integration
 
-go 1.19
+go 1.23
 
 replace github.com/Trendyol/otel-kafka-konsumer => ../..
 
 require (
 	github.com/Trendyol/otel-kafka-konsumer v0.0.5
-	github.com/segmentio/kafka-go v0.4.44
+	github.com/segmentio/kafka-go v0.4.51
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel v1.19.0
 	go.opentelemetry.io/otel/sdk v1.19.0
